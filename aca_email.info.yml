@@ -1,0 +1,5 @@
+name: Aca E-mail
+description: "Sends e-mail to the given address"
+type: module
+package: AcaPackage
+core: 8.x

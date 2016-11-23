@@ -1,0 +1,6 @@
+aca_email:
+  path: /send/the/email
+  defaults:
+    _controller: Drupal\aca_email\Controller\ContactController::contact
+  requirements:
+    _permission: 'access content'
