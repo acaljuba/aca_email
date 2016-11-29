@@ -2,6 +2,7 @@
 	namespace Drupal\aca_email\Controller;
 	
 	use Drupal\Core\Controller\ControllerBase;
+	use Symfony\Component\HttpFoundation\Response;
 	
 	/**
 	 * Controller for sending E-mail messages.

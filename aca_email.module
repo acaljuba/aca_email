@@ -1,5 +1,102 @@
 <?php
 /**
- * Empty module file.
+ * We will be using Drupal's mail API in this file.
  */
+
+use Drupal\Component\Utility\SafeMarkup;
+
+/**
+ * Implementation of hook_mail().
+ */
+function aca_email_mail($key, $message, $params) {
+  // Get language code, which provides current user language.
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+  
+  // configuring the message
+  switch ($key) {
+    case 'contact_message':
+	  $from = \Drupal::config('system.site')->get('mail');
+	  $message['subject'] = t('E-mail sent to you from @sender', array ( '@sender' => $from ), $options);
+	  $message['body'][] = t('We sent you the following message: ', $options);
+	  // We need to translate HTML to text before sending message, so this function removes HTML tags from the message text.
+	  $message['body'][] = SafeMarkup::checkPlain($params['message']);
+	  break;
+  }
+}
+
+// function aca_email_mail($key, $message, $params) {
+//   $data['user'] = $params['account'];
+//   $options['langcode'] = $message['langcode'];
+//   // user_mail_tokens($variables, $data, $options);
+//   switch($key) {
+//     case 'notice':
+//       // If the recipient can receive such notices by instant-message, do
+//       // not send by email.
+//       if (example_im_send($key, $message, $params)) {
+//         $message['send'] = FALSE;
+//         break;
+//       }
+//       $message['subject'] = t('Notification from @site', $params['account'], $options);
+//       $message['body'][] = t("Dear @username\n\nThere is new content available on the site.", $variables, $options);
+//       break;
+//   }
+// }
+
+/**
+ * Implements hook_mail_alter().
+ * 
+ * Not yet implemented, this function need to call getGeocode() method in order to alter the message.
+ */
+function aca_email_alter(&$message) {
+  //$options = array(
+  //  'langcode' => $message['langcode'],
+  //);
+  // Does nothing, for now...
+}
+
+/**
+ * Function to geocode address, it will return false if unable to geocode address
+ */
+public function getGeocode($address) {
+  // url encode the address
+  $address = urlencode($address);
+  
+  // google map geocode api url
+  $url = "http://maps.google.com/maps/api/geocode/json?address={$address}";
+  
+  // get the json response
+  $resp_json = file_get_contents($url);
+  
+  // decode the json
+  $resp = json_decode($resp_json, TRUE);
+  
+  // response status will be 'OK', if able to geocode given address
+  if ($resp['status'] == 'OK') {
+  	// get the important data
+  	$lati = $resp['results'][0]['geometry']['location']['lat'];
+  	$longi = $resp['results'][0]['geometry']['location']['lng'];
+  	$formatted_address = $resp['results'][0]['formatted_address'];
+  	
+  	// verify if data is complete
+  	if ($lati && $longi && $formatted_address) {
+  	  // put the data in the array
+  	  $data_arr = array();
+  	  
+  	  array_push(
+  	  	$data_arr,
+  	  	$lati,
+  	  	$longi,
+  	  	$formatted_address
+  	  );
+  	  
+  	  return $data_arr;
+  	} else {
+  	  return FALSE;
+  	}
+  } else {
+    return FALSE;
+  }
+}
 ?>
