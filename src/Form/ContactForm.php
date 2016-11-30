@@ -7,6 +7,8 @@
 	use Symfony\Component\DependencyInjection\ContainerInterface;
 	use Drupal\Core\Language\LanguageManagerInterface;
 	use Symfony\Component\HttpFoundation\Response;
+	use Drupal\aca_email\GeocodeClass;
+	use Drupal\aca_email\GeocodeClassInterface;
 	
 	/** 
 	 * E-mail contact form example, still in Development.
@@ -24,9 +26,16 @@
 		/**
 		 * The language manager.
 		 * 
-		 * @var \Drupal\Core\Mail\MailManagerInterface
+		 * @var \Drupal\Core\Language\LanguageManagerInterface
 		 */
 		protected $languageManager;
+		
+		/**
+		 * The Geocode class.
+		 * 
+		 * @var \Drupal\aca_email\GeocodeClassInterface
+		 */
+		protected $geocodeClass;
 
 		/**
 		 * Public constructor.
@@ -36,9 +45,10 @@
 		 * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
 		 *   The language manager.
 		 */
-		public function __construct(MailManagerInterface $mail_manager, LanguageManagerInterface $language_manager) {
+		public function __construct(MailManagerInterface $mail_manager, LanguageManagerInterface $language_manager, GeocodeClassInterface $geocode_class) {
 			$this->mailManager = $mail_manager;
 			$this->languageManager = $language_manager;
+			$this->geocodeClass = $geocode_class;
 		}
 		
 		/**
@@ -47,7 +57,8 @@
 		public static function create(ContainerInterface $container) {
 			return new static(
 				$container->get('plugin.manager.mail'),
-				$container->get('language_manager')
+				$container->get('language_manager'),
+				$container->get('aca_email.geocode')
 			);
 		}
 
@@ -84,10 +95,10 @@
 				'#required' => TRUE,
 			);
 			
-			$form[location] = array(
-				'#type' => 'label',
-				'#title' => 'Location'
-			);
+			// $form[location] = array(
+			// 	'#type' => 'label',
+			// 	'#title' => 'Location'
+			// );
 			
 			// E-mail address.
 			$form['email'] = array(
@@ -161,7 +172,35 @@
 		 * {@inheritdoc}
 		 */
 		public function submitForm(array &$form, FormStateInterface $form_state) {
+			// Does nothing, for now
+			// $values = $form_state->getValues();
+			// foreach ($values as $key => $value) {
+			// 	$label = isset($form[$key]['#title']) ? $form[$key]['#title'] : $key;
+			// 	
+			// 	if ($value && $label) {
+			// 		$display_value = is_array($value) ? preg_replace('/[\n\r\s]+/', ' ', print_r($value, 1)) : $value;
+			// 		$message = $this->t('Value for %title: %value', array('%title' => $label, '%value' => $display_value));
+			// 		drupal_set_message($message);
+			// 	}
+			// }
+			
+			// drupal_set_message($this->t(\Drupal::config('system.site')->get('mail')));
+			
 			$values = $form_state->getValues();
+			
+			// get latitude, longitude and formatted address
+			$data_arr = $this->geocodeClass->geocode($values['address']);
+			
+			// if able to geocode the address
+			if ($data_arr) {
+				$latitude = $data_arr[0];
+				$longitude = $data_arr[1];
+				$formatted_address = $data_arr[2];
+			}
+			
+			drupal_set_message($this->t('Latitude: ' . $latitude));
+			drupal_set_message($this->t('Longitude: ' . $longitude));
+			drupal_set_message($this->t('Formatted address: ' . $formatted_address));
 			
 			// Specify module name so the hook_mail() method can be invoked.
 			$module = 'aca_email';
